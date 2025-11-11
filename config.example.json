@@ -1,0 +1,52 @@
+{
+  "port": 8080,
+  "api_key": "your-api-key-here",
+  "aliases": [
+    {
+      "name": "gpt-4-turbo",
+      "models": [
+        {
+          "priority": 1,
+          "provider": "openai",
+          "name": "gpt-4-turbo-preview"
+        },
+        {
+          "priority": 2,
+          "provider": "openai",
+          "name": "gpt-4"
+        }
+      ]
+    },
+    {
+      "name": "fast-model",
+      "models": [
+        {
+          "priority": 1,
+          "provider": "openai",
+          "name": "gpt-3.5-turbo"
+        },
+        {
+          "priority": 2,
+          "provider": "openrouter",
+          "name": "openai/gpt-3.5-turbo"
+        }
+      ]
+    }
+  ],
+  "providers": [
+    {
+      "name": "openai",
+      "base_url": "https://api.openai.com/v1",
+      "api_keys": [
+        "sk-your-openai-key-here"
+      ]
+    },
+    {
+      "name": "openrouter",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_keys": [
+        "sk-or-your-openrouter-key-here"
+      ]
+    }
+  ]
+}
