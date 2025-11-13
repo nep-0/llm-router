@@ -110,7 +110,7 @@ func (a *App) getClient(models []*Model) (provider string, model string, keyClie
 	for _, m := range models {
 		if pClient, exists := a.clients[m.Provider]; exists {
 			for _, kClient := range pClient.KeyClients {
-				usage := kClient.Usage(m.Name)
+				usage := kClient.Usage(m.Name) * m.Weight
 				if minUsage == -1 || usage < minUsage {
 					minUsage = usage
 					selectedClient = kClient

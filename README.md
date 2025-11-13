@@ -74,8 +74,6 @@ LLM Router supports both YAML and JSON configuration formats. Copy one of the ex
 
 ```bash
 cp config.example.yaml config.yaml
-# or
-cp config.example.json config.json
 ```
 
 ### Configuration Structure
@@ -122,13 +120,13 @@ providers:
 - **groups**: Logical groupings of models
   - **name**: Group identifier (used as the "model" parameter in API requests)
   - **models**: List of models in the group
-    - **weight**: Currently unused, reserved for future weighted selection
+    - **weight**: Relative weight for load balancing (higher means fewer requests Eg. weight 2 gets half the requests of weight 1)
     - **provider**: Provider name (must match a provider definition)
     - **name**: The actual model name to use with the provider
 - **providers**: API provider configurations
   - **name**: Provider identifier
   - **base_url**: Provider's base API URL
-  - **api_keys**: List of API keys for this provider (enables key rotation/load balancing)
+  - **api_keys**: List of API keys for this provider (enables load balancing)
 
 ## Usage
 
@@ -217,22 +215,6 @@ response = client.chat.completions.create(
 )
 ```
 
-#### Node.js
-
-```javascript
-import OpenAI from 'openai';
-
-const client = new OpenAI({
-  apiKey: 'your-api-key-here',
-  baseURL: 'http://localhost:8080/v1'
-});
-
-const response = await client.chat.completions.create({
-  model: 'gpt-4-turbo',  // Use your group name
-  messages: [{ role: 'user', content: 'Hello!' }]
-});
-```
-
 ## How It Works
 
 1. **Request Reception**: The router receives a request for a model group (e.g., "gpt-4-turbo")
@@ -242,34 +224,26 @@ const response = await client.chat.completions.create({
 5. **Usage Tracking**: Token usage is tracked and attributed to the specific API key used
 6. **Response Return**: The provider's response is returned to the client
 
-This architecture enables:
-- **High Availability**: If one provider is down, requests automatically route to others
-- **Cost Optimization**: Distribute load across different providers based on pricing
-- **Rate Limit Management**: Automatically use the least-utilized API key
-- **Simplified Client Code**: Clients use group names instead of specific provider models
-
 ## Project Structure
 
 ```
 llm-router/
-├── app/           # Application logic and request handling
-├── client/        # Provider client wrappers and usage tracking
-├── config/        # Configuration loading and parsing
-├── server/        # HTTP server and request routing
-├── utils/         # Utility functions for logging and request handling
-├── main.go        # Application entry point
-├── go.mod         # Go module dependencies
-└── config.yaml    # Configuration file (not included, use example)
+├── app/                  # Application logic and request handling       
+├── client/               # Provider client wrappers and usage tracking       
+├── config/               # Configuration loading and parsing
+├── server/               # HTTP server and request routing
+├── utils/                # Utility functions for logging and request handling       
+├── main.go               # Application entry point
+├── go.mod                # Go module dependencies
+├── config.yaml           # Configuration file (not included, use example)
+├── Dockerfile            # Dockerfile for containerization
+└── docker-compose.yml    # Docker Compose configuration file
 ```
 
 ## Dependencies
 
 - [go-openai](https://github.com/sashabaranov/go-openai) - OpenAI API client library
 - [viper](https://github.com/spf13/viper) - Configuration management
-
-## Docker Deployment
-
-For detailed Docker deployment instructions, including production setups and Kubernetes examples, see [DOCKER.md](DOCKER.md).
 
 ## License
 
@@ -285,12 +259,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Roadmap
 
-- [ ] Weighted model selection based on configured weights
 - [ ] Health checks and automatic provider failover
-- [ ] Metrics and monitoring endpoints
-- [ ] Rate limiting per client
-- [ ] Caching layer for repeated requests
-- [ ] Support for additional OpenAI endpoints (embeddings, images, etc.)
 - [ ] Web UI for monitoring and configuration
 
 ## Support
