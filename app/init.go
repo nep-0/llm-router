@@ -53,10 +53,10 @@ func getClients(cfg *config.Config) map[string]*client.ProviderClient {
 		for _, apiKey := range provider.APIKeys {
 			openAIConfig := openai.DefaultConfig(apiKey)
 			openAIConfig.BaseURL = provider.BaseURL
-			keyClient := &client.KeyClient{
-				APIKey: apiKey,
-				Client: openai.NewClientWithConfig(openAIConfig),
-			}
+			keyClient := client.NewKeyClient(
+				apiKey,
+				openai.NewClientWithConfig(openAIConfig),
+			)
 			pClient.KeyClients = append(pClient.KeyClients, keyClient)
 		}
 		clients[provider.Name] = pClient

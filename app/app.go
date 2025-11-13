@@ -94,43 +94,31 @@ func (a *App) getClientForGroup(groupName string) (provider string, model string
 		return "", "", nil, fmt.Errorf("no models found for group: %s", groupName)
 	}
 
-	// Collect provider names from the models
-	providerNames := make([]string, 0)
-	for _, model := range models {
-		providerNames = append(providerNames, model.Provider)
-	}
-	provider, client := a.getClient(providerNames)
+	provider, model, client := a.getClient(models)
 
-	// Find the selected model for the chosen provider
-	var providerModel string
-	for _, model := range models {
-		if model.Provider == provider {
-			providerModel = model.Name
-			break
-		}
-	}
-
-	return provider, providerModel, client, nil
+	return provider, model, client, nil
 }
 
-// getClient selects the KeyClient with the lowest usage from the specified providers
-func (a *App) getClient(providerNames []string) (provider string, keyClient *client.KeyClient) {
+// getClient selects the KeyClient with the lowest usage for the specific provider/model combination
+func (a *App) getClient(models []*Model) (provider string, model string, keyClient *client.KeyClient) {
 	minUsage := int64(-1)
 	var selectedProvider string
+	var selectedModel string
 	var selectedClient *client.KeyClient
 
-	// Iterate over the specified providers
-	for _, providerName := range providerNames {
-		if pClient, exists := a.clients[providerName]; exists {
+	// Iterate over all models in the group
+	for _, m := range models {
+		if pClient, exists := a.clients[m.Provider]; exists {
 			for _, kClient := range pClient.KeyClients {
-				usage := kClient.Usage()
+				usage := kClient.Usage(m.Name)
 				if minUsage == -1 || usage < minUsage {
 					minUsage = usage
 					selectedClient = kClient
-					selectedProvider = providerName
+					selectedProvider = m.Provider
+					selectedModel = m.Name
 				}
 			}
 		}
 	}
-	return selectedProvider, selectedClient
+	return selectedProvider, selectedModel, selectedClient
 }

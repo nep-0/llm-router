@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"sync/atomic"
+	"sync"
 
 	"github.com/sashabaranov/go-openai"
 )
@@ -13,19 +13,33 @@ type ProviderClient struct {
 }
 
 type KeyClient struct {
-	APIKey string
-	usage  int64
-	Client *openai.Client
+	APIKey      string
+	modelUsage  map[string]int64 // per-model usage tracking
+	usageMutex  sync.RWMutex     // protects modelUsage map
+	Client      *openai.Client
 }
 
-// IncrementUsage increases the usage count for the KeyClient
-func (kc *KeyClient) IncrementUsage(in int64) {
-	atomic.AddInt64(&kc.usage, in)
+// NewKeyClient creates a new KeyClient with initialized model usage map
+func NewKeyClient(apiKey string, client *openai.Client) *KeyClient {
+	return &KeyClient{
+		APIKey:     apiKey,
+		modelUsage: make(map[string]int64),
+		Client:     client,
+	}
 }
 
-// Usage returns the current usage count for the KeyClient
-func (kc *KeyClient) Usage() int64 {
-	return atomic.LoadInt64(&kc.usage)
+// IncrementUsage increases the usage count for a specific model
+func (kc *KeyClient) IncrementUsage(model string, tokens int64) {
+	kc.usageMutex.Lock()
+	defer kc.usageMutex.Unlock()
+	kc.modelUsage[model] += tokens
+}
+
+// Usage returns the current usage count for a specific model
+func (kc *KeyClient) Usage(model string) int64 {
+	kc.usageMutex.RLock()
+	defer kc.usageMutex.RUnlock()
+	return kc.modelUsage[model]
 }
 
 // ChatCompletionResponse wraps the OpenAI response
@@ -37,6 +51,7 @@ type ChatCompletionResponse struct {
 type ChatCompletionStream struct {
 	stream    *openai.ChatCompletionStream
 	keyClient *KeyClient
+	model     string
 }
 
 // Recv receives the next stream chunk and tracks usage
@@ -48,7 +63,7 @@ func (w *ChatCompletionStream) Recv() (openai.ChatCompletionStreamResponse, erro
 
 	// Increment usage if provided in the response
 	if resp.Usage != nil {
-		w.keyClient.IncrementUsage(int64(resp.Usage.TotalTokens))
+		w.keyClient.IncrementUsage(w.model, int64(resp.Usage.TotalTokens))
 	}
 
 	return resp, nil
@@ -65,7 +80,7 @@ func (kc *KeyClient) ChatCompletion(ctx context.Context, req openai.ChatCompleti
 	if err != nil {
 		return nil, err
 	}
-	kc.IncrementUsage(int64(resp.Usage.TotalTokens))
+	kc.IncrementUsage(req.Model, int64(resp.Usage.TotalTokens))
 
 	wrapped := &ChatCompletionResponse{
 		ChatCompletionResponse: resp,
@@ -83,6 +98,7 @@ func (kc *KeyClient) ChatCompletionStream(ctx context.Context, req openai.ChatCo
 	wrapper := &ChatCompletionStream{
 		stream:    stream,
 		keyClient: kc,
+		model:     req.Model,
 	}
 
 	return wrapper, nil
