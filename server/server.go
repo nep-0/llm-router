@@ -47,7 +47,7 @@ func NewServer(apiKey string, logger *slog.Logger,
 
 func (s *Server) ListenAndServe(addr string) {
 	s.Logger.Info("Server listening", slog.String("address", addr))
-	http.HandleFunc("/v1/chat/completions", s.HandleRequest)
+	http.HandleFunc("/v1/chat/completions", compressionMiddleware(s.HandleRequest))
 	http.ListenAndServe(addr, nil)
 }
 

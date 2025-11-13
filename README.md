@@ -7,10 +7,12 @@ A flexible and efficient OpenAI-compatible API router for large language models 
 - **OpenAI-Compatible API** - Drop-in replacement for OpenAI's chat completions endpoint
 - **Multi-Provider Support** - Route requests across OpenAI, OpenRouter, and other OpenAI-compatible providers
 - **Intelligent Load Balancing** - Automatically selects the API key with lowest usage to distribute load evenly
+- **Weighted Model Selection** - Control traffic distribution with configurable weights for cost optimization
 - **Model Groups** - Define logical model groups that map to multiple underlying models across different providers
 - **Streaming Support** - Full support for streaming chat completions with Server-Sent Events (SSE)
 - **API Key Management** - Manage multiple API keys per provider for better rate limiting and redundancy
-- **Usage Tracking** - Monitors token usage per API key to optimize routing decisions
+- **Per-Model Usage Tracking** - Monitors token usage per API key per model for granular routing decisions
+- **GZIP Compression** - Automatic response compression when client supports it
 - **CORS Support** - Built-in CORS handling for browser-based applications
 - **Secure Authentication** - Bearer token authentication with constant-time comparison
 
