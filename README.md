@@ -18,7 +18,47 @@ A flexible and efficient OpenAI-compatible API router for large language models 
 
 ### Prerequisites
 
-- Go 1.25.0 or higher
+- Go 1.25.0 or higher (for building from source)
+- Docker (optional, for containerized deployment)
+
+### Using Docker (Recommended)
+
+#### Quick Start with Docker Compose
+
+1. Clone the repository:
+```bash
+git clone https://github.com/nep-0/llm-router.git
+cd llm-router
+```
+
+2. Create your configuration file:
+```bash
+cp config.example.yaml config.yaml
+# Edit config.yaml with your settings
+```
+
+3. Start the router:
+```bash
+docker-compose up -d
+```
+
+The router will be available at `http://localhost:8080`.
+
+#### Using Docker Directly
+
+Build the image:
+```bash
+docker build -t llm-router .
+```
+
+Run the container:
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -v $(pwd)/config.yaml:/app/config.yaml:ro \
+  --name llm-router \
+  llm-router
+```
 
 ### Build from Source
 
@@ -94,6 +134,22 @@ providers:
 
 ### Start the Server
 
+#### Using Docker Compose
+```bash
+docker-compose up -d
+```
+
+To view logs:
+```bash
+docker-compose logs -f
+```
+
+To stop:
+```bash
+docker-compose down
+```
+
+#### Using Binary
 ```bash
 ./llm-router
 ```
@@ -210,6 +266,10 @@ llm-router/
 
 - [go-openai](https://github.com/sashabaranov/go-openai) - OpenAI API client library
 - [viper](https://github.com/spf13/viper) - Configuration management
+
+## Docker Deployment
+
+For detailed Docker deployment instructions, including production setups and Kubernetes examples, see [DOCKER.md](DOCKER.md).
 
 ## License
 

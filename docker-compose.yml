@@ -1,0 +1,11 @@
+services:
+  llm-router:
+    build: .
+    image: llm-router:latest
+    container_name: llm-router
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount your config file
+      - ./config.yaml:/app/config.yaml:ro
+    restart: unless-stopped
