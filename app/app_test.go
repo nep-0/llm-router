@@ -31,8 +31,8 @@ func TestGetClientWithMultipleModelsFromSameProvider(t *testing.T) {
 
 	// Test: Group with multiple models from same provider (like the gpt-4-turbo group)
 	models := []*Model{
-		{Provider: "openai", Name: "gpt-4-turbo-preview"},
-		{Provider: "openai", Name: "gpt-4"},
+		{Weight: 1, Provider: "openai", Name: "gpt-4-turbo-preview"},
+		{Weight: 1, Provider: "openai", Name: "gpt-4"},
 	}
 
 	provider, model, selectedClient := app.getClient(models)
@@ -93,8 +93,8 @@ func TestGetClientSelectsLowestUsageAcrossAllCombinations(t *testing.T) {
 	kc3.IncrementUsage("gpt-4-turbo-preview", 600)
 
 	models := []*Model{
-		{Provider: "openai", Name: "gpt-4-turbo-preview"},
-		{Provider: "openai", Name: "gpt-4"},
+		{Weight: 1, Provider: "openai", Name: "gpt-4-turbo-preview"},
+		{Weight: 1, Provider: "openai", Name: "gpt-4"},
 	}
 
 	provider, model, selectedClient := app.getClient(models)
@@ -117,4 +117,189 @@ func TestGetClientSelectsLowestUsageAcrossAllCombinations(t *testing.T) {
 	// kc2+gpt-4=300
 	// kc3+gpt-4-turbo-preview=600
 	// kc3+gpt-4=200
+}
+
+func TestWeightedBalancing(t *testing.T) {
+	// Create multiple API keys
+	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")))
+	kc2 := client.NewKeyClient("key2", openai.NewClientWithConfig(openai.DefaultConfig("key2")))
+
+	app := &App{
+		clients: map[string]*client.ProviderClient{
+			"openai": {
+				ProviderName: "openai",
+				KeyClients:   []*client.KeyClient{kc1, kc2},
+			},
+		},
+	}
+
+	// Set up usage where model-a has 100 tokens on kc1, model-b has 50 tokens on kc1
+	// Also set non-zero usage on kc2 to avoid it being selected
+	kc1.IncrementUsage("model-a", 100)
+	kc1.IncrementUsage("model-b", 50)
+	kc2.IncrementUsage("model-a", 200)
+	kc2.IncrementUsage("model-b", 200)
+
+	// Test with equal weights (weight=1)
+	models := []*Model{
+		{Weight: 1, Provider: "openai", Name: "model-a"},
+		{Weight: 1, Provider: "openai", Name: "model-b"},
+	}
+
+	provider, model, selectedClient := app.getClient(models)
+
+	// Should select model-b with kc1 (weighted usage: 50*1=50, lower than model-a's 100*1=100)
+	if provider != "openai" {
+		t.Errorf("Expected provider 'openai', got '%s'", provider)
+	}
+	if model != "model-b" {
+		t.Errorf("Expected model 'model-b', got '%s'", model)
+	}
+	if selectedClient != kc1 {
+		t.Errorf("Expected kc1 to be selected")
+	}
+
+	// Test with different weights
+	// model-a has weight 1, model-b has weight 2
+	// kc1: model-a usage=100, model-b usage=50
+	// Weighted: model-a=100*1=100, model-b=50*2=100 (tied, model-a selected first)
+	// kc2: model-a usage=200, model-b usage=200
+	// Weighted: model-a=200*1=200, model-b=200*2=400
+	models = []*Model{
+		{Weight: 1, Provider: "openai", Name: "model-a"},
+		{Weight: 2, Provider: "openai", Name: "model-b"},
+	}
+
+	provider, model, selectedClient = app.getClient(models)
+
+	// With weight=2 for model-b, kc1's weighted usage is 100 for model-a and 100 for model-b
+	// Should select either model-a or model-b on kc1 (both have weighted usage 100)
+	if selectedClient != kc1 {
+		t.Errorf("Expected kc1 to be selected (lowest weighted usage)")
+	}
+}
+
+func TestWeightedBalancingPrioritizesHigherWeight(t *testing.T) {
+	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")))
+
+	app := &App{
+		clients: map[string]*client.ProviderClient{
+			"openai": {
+				ProviderName: "openai",
+				KeyClients:   []*client.KeyClient{kc1},
+			},
+		},
+	}
+
+	// Model A: 100 tokens, weight 1 → effective usage = 100
+	// Model B: 100 tokens, weight 2 → effective usage = 200
+	// Model C: 100 tokens, weight 3 → effective usage = 300
+	kc1.IncrementUsage("model-a", 100)
+	kc1.IncrementUsage("model-b", 100)
+	kc1.IncrementUsage("model-c", 100)
+
+	models := []*Model{
+		{Weight: 1, Provider: "openai", Name: "model-a"},
+		{Weight: 2, Provider: "openai", Name: "model-b"},
+		{Weight: 3, Provider: "openai", Name: "model-c"},
+	}
+
+	_, model, _ := app.getClient(models)
+
+	// Should select model-a because it has the lowest weighted usage (100*1=100)
+	if model != "model-a" {
+		t.Errorf("Expected model 'model-a' (lowest weighted usage), got '%s'", model)
+	}
+}
+
+func TestWeightedBalancingDistributesLoad(t *testing.T) {
+	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")))
+
+	app := &App{
+		clients: map[string]*client.ProviderClient{
+			"openai": {
+				ProviderName: "openai",
+				KeyClients:   []*client.KeyClient{kc1},
+			},
+		},
+	}
+
+	// Scenario: weight 2 means "use this half as often"
+	// If model-expensive has weight 2 and model-cheap has weight 1,
+	// after equal token usage, model-cheap should be selected
+	kc1.IncrementUsage("model-expensive", 100) // weight 2 → effective 200
+	kc1.IncrementUsage("model-cheap", 150)     // weight 1 → effective 150
+
+	models := []*Model{
+		{Weight: 2, Provider: "openai", Name: "model-expensive"},
+		{Weight: 1, Provider: "openai", Name: "model-cheap"},
+	}
+
+	_, model, _ := app.getClient(models)
+
+	// Should select model-cheap (weighted usage 150 < 200)
+	if model != "model-cheap" {
+		t.Errorf("Expected model 'model-cheap' (weighted usage 150 < 200), got '%s'", model)
+	}
+
+	// Now increment model-cheap to 201 tokens (weighted: 201)
+	kc1.IncrementUsage("model-cheap", 51)
+
+	_, model, _ = app.getClient(models)
+
+	// Should now select model-expensive (weighted usage 200 < 201)
+	if model != "model-expensive" {
+		t.Errorf("Expected model 'model-expensive' after rebalancing, got '%s'", model)
+	}
+}
+
+func TestWeightedBalancingAcrossMultipleKeys(t *testing.T) {
+	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")))
+	kc2 := client.NewKeyClient("key2", openai.NewClientWithConfig(openai.DefaultConfig("key2")))
+	kc3 := client.NewKeyClient("key3", openai.NewClientWithConfig(openai.DefaultConfig("key3")))
+
+	app := &App{
+		clients: map[string]*client.ProviderClient{
+			"openai": {
+				ProviderName: "openai",
+				KeyClients:   []*client.KeyClient{kc1, kc2, kc3},
+			},
+		},
+	}
+
+	// Setup: model-a (weight 1), model-b (weight 2)
+	// kc1: model-a=100, model-b=50 → weighted: 100, 100
+	// kc2: model-a=50, model-b=100 → weighted: 50, 200
+	// kc3: model-a=75, model-b=30 → weighted: 75, 60
+	kc1.IncrementUsage("model-a", 100)
+	kc1.IncrementUsage("model-b", 50)
+	kc2.IncrementUsage("model-a", 50)
+	kc2.IncrementUsage("model-b", 100)
+	kc3.IncrementUsage("model-a", 75)
+	kc3.IncrementUsage("model-b", 30)
+
+	models := []*Model{
+		{Weight: 1, Provider: "openai", Name: "model-a"},
+		{Weight: 2, Provider: "openai", Name: "model-b"},
+	}
+
+	provider, model, selectedClient := app.getClient(models)
+
+	// Minimum weighted usage:
+	// kc1+model-a: 100*1=100
+	// kc1+model-b: 50*2=100
+	// kc2+model-a: 50*1=50 ← minimum!
+	// kc2+model-b: 100*2=200
+	// kc3+model-a: 75*1=75
+	// kc3+model-b: 30*2=60
+
+	if provider != "openai" {
+		t.Errorf("Expected provider 'openai', got '%s'", provider)
+	}
+	if model != "model-a" {
+		t.Errorf("Expected model 'model-a' (lowest weighted usage), got '%s'", model)
+	}
+	if selectedClient != kc2 {
+		t.Errorf("Expected kc2 to be selected (weighted usage 50)")
+	}
 }

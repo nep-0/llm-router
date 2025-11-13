@@ -202,7 +202,7 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Model key missing or not a string", http.StatusBadRequest)
 		return
 	}
-	// TODO: LOGIC
+
 	if stream, ok := chatReq["stream"].(bool); ok && stream {
 		s.Logger.Info("Incoming streaming request for model(group)", slog.String("model", modelName))
 

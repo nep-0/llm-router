@@ -120,13 +120,15 @@ providers:
 - **groups**: Logical groupings of models
   - **name**: Group identifier (used as the "model" parameter in API requests)
   - **models**: List of models in the group
-    - **weight**: Relative weight for load balancing (higher means fewer requests Eg. weight 2 gets half the requests of weight 1)
+    - **weight**: Relative weight for load balancing (higher means fewer tokens)
     - **provider**: Provider name (must match a provider definition)
     - **name**: The actual model name to use with the provider
 - **providers**: API provider configurations
   - **name**: Provider identifier
   - **base_url**: Provider's base API URL
   - **api_keys**: List of API keys for this provider (enables load balancing)
+
+Note: Weight is inversely proportional to usage; higher weight means the model will be used less frequently. Weight 0 = always use.
 
 ## Usage
 

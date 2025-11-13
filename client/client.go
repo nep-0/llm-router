@@ -13,10 +13,10 @@ type ProviderClient struct {
 }
 
 type KeyClient struct {
-	APIKey      string
-	modelUsage  map[string]int64 // per-model usage tracking
-	usageMutex  sync.RWMutex     // protects modelUsage map
-	Client      *openai.Client
+	APIKey     string
+	modelUsage map[string]int64 // per-model usage tracking
+	usageMutex sync.RWMutex     // protects modelUsage map
+	Client     *openai.Client
 }
 
 // NewKeyClient creates a new KeyClient with initialized model usage map
@@ -61,8 +61,8 @@ func (w *ChatCompletionStream) Recv() (openai.ChatCompletionStreamResponse, erro
 		return resp, err
 	}
 
-	// Increment usage if provided in the response
-	if resp.Usage != nil {
+	// Increment usage if is last chunk and usage info is available
+	if len(resp.Choices) > 0 && resp.Choices[0].FinishReason != "" && resp.Usage != nil {
 		w.keyClient.IncrementUsage(w.model, int64(resp.Usage.TotalTokens))
 	}
 
