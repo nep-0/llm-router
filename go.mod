@@ -2,7 +2,10 @@ module llm-router
 
 go 1.25.0
 
-require github.com/spf13/viper v1.21.0
+require (
+	github.com/sashabaranov/go-openai v1.41.2
+	github.com/spf13/viper v1.21.0
+)
 
 require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect

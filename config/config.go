@@ -5,19 +5,19 @@ import (
 )
 
 type Config struct {
-	Port      int        `mapstructure:"port"`
+	Port      int64      `mapstructure:"port"`
 	APIKey    string     `mapstructure:"api_key"`
-	Aliases   []Alias    `mapstructure:"aliases"`
+	Groups    []Group    `mapstructure:"groups"`
 	Providers []Provider `mapstructure:"providers"`
 }
 
-type Alias struct {
+type Group struct {
 	Name   string  `mapstructure:"name"`
 	Models []Model `mapstructure:"models"`
 }
 
 type Model struct {
-	Priority int    `mapstructure:"priority"`
+	Weight   int64  `mapstructure:"weight"`
 	Provider string `mapstructure:"provider"`
 	Name     string `mapstructure:"name"`
 }

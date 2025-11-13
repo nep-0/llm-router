@@ -1,2 +1,5 @@
 llm-router
 *.exe
+
+config.yaml
+config.json
