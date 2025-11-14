@@ -12,7 +12,7 @@ A flexible and efficient OpenAI-compatible API router for large language models 
 - **Streaming Support** - Full support for streaming chat completions with Server-Sent Events (SSE)
 - **API Key Management** - Manage multiple API keys per provider for better rate limiting and redundancy
 - **Per-Model Usage Tracking** - Monitors token usage per API key per model for granular routing decisions
-- **GZIP Compression** - Automatic response compression when client supports it
+- **Compression** - Automatic response compression when client supports it
 - **CORS Support** - Built-in CORS handling for browser-based applications
 - **Secure Authentication** - Bearer token authentication with constant-time comparison
 
@@ -248,6 +248,7 @@ llm-router/
 
 - [go-openai](https://github.com/sashabaranov/go-openai) - OpenAI API client library
 - [viper](https://github.com/spf13/viper) - Configuration management
+- [brotli](https://github.com/andybalholm/brotli) - Brotli compression
 
 ## License
 
