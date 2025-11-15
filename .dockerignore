@@ -1,6 +1,20 @@
-# Git
+# Ignore VCS and CI
 .git
 .gitignore
+.github
+
+# Build artifacts
+bin/
+dist/
+build/
+coverage/
+
+# Node leftovers (if any)
+node_modules/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
 
 # Build artifacts
 *.exe
