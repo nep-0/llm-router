@@ -66,10 +66,25 @@ func getClients(cfg *config.Config) map[string]*client.ProviderClient {
 
 // getServer creates a new server instance with request handlers
 func (a *App) getServer() *server.Server {
+	// build a models function that exposes configured groups as models
+	modelsFunc := func() []server.ModelInfo {
+		models := make([]server.ModelInfo, 0)
+		for _, g := range a.Groups {
+			mi := server.ModelInfo{
+				ID:      g.Name,
+				Object:  "model",
+				OwnedBy: "llm-router",
+			}
+			models = append(models, mi)
+		}
+		return models
+	}
+
 	return server.NewServer(
 		a.Config.APIKey,
 		a.Logger,
 		a.HandleRequest,
 		a.HandleStreamRequest,
+		modelsFunc,
 	)
 }
