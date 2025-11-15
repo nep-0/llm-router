@@ -1,9 +1,6 @@
 # Build stage
 FROM golang:1.25-alpine AS builder
 
-# Install build dependencies
-RUN apk add --no-cache git
-
 # Set working directory
 WORKDIR /build
 
@@ -17,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o llm-router .
+RUN CGO_ENABLED=0 GOOS=linux go build -o llm-router .
 
 # Runtime stage
 FROM alpine:latest
@@ -34,9 +31,6 @@ WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder /build/llm-router .
-
-# Copy example config files (optional, for reference)
-COPY config.example.yaml config.example.json ./
 
 # Change ownership to non-root user
 RUN chown -R llmrouter:llmrouter /app

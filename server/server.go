@@ -39,6 +39,7 @@ func (s *Server) ListenAndServe(addr string) {
 		http.HandleFunc("/v1/models", compressionMiddleware(s.HandleModelsRequest(s.handleModels)))
 	}
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		s.Logger.Info("Health check endpoint hit", slog.String("addr", r.RemoteAddr))
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
