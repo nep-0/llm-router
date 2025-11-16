@@ -71,6 +71,8 @@ func (a *App) HandleStreamRequest(ctx context.Context, req openai.ChatCompletion
 
 	// Update the request model to the selected model
 	req.Model = model
+	// Ensure usage info is included in the stream
+	req.StreamOptions = &openai.StreamOptions{IncludeUsage: true}
 	stream, err := keyClient.ChatCompletionStream(ctx, req)
 	if err != nil {
 		a.Logger.Error("ChatCompletionStream error", slog.Any("error", err))
