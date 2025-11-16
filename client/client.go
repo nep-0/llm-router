@@ -61,8 +61,11 @@ func (w *ChatCompletionStream) Recv() (openai.ChatCompletionStreamResponse, erro
 		return resp, err
 	}
 
+	finish := len(resp.Choices) > 0 &&
+		(resp.Choices[0].FinishReason != "" || resp.Choices[0].Delta.Content+resp.Choices[0].Delta.ReasoningContent == "")
+
 	// Increment usage if is last chunk and usage info is available
-	if len(resp.Choices) > 0 && resp.Choices[0].FinishReason != "" && resp.Usage != nil {
+	if finish && resp.Usage != nil {
 		w.keyClient.IncrementUsage(w.model, int64(resp.Usage.TotalTokens))
 	}
 
