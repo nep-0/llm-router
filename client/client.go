@@ -52,6 +52,9 @@ type ChatCompletionStream struct {
 	stream    *openai.ChatCompletionStream
 	keyClient *KeyClient
 	model     string
+	// Different providers report usage in very different ways.
+	// In case of reporting multiple times, we track usage here to avoid double counting.
+	usage int64
 }
 
 // Recv receives the next stream chunk and tracks usage
@@ -61,12 +64,22 @@ func (w *ChatCompletionStream) Recv() (openai.ChatCompletionStreamResponse, erro
 		return resp, err
 	}
 
-	finish := len(resp.Choices) > 0 &&
-		(resp.Choices[0].FinishReason != "" || resp.Choices[0].Delta.Content+resp.Choices[0].Delta.ReasoningContent == "")
+	// Empty response choices
+	finish := len(resp.Choices) == 0
 
-	// Increment usage if is last chunk and usage info is available
+	// Response choice with finish reason
+	finish = finish || resp.Choices[0].FinishReason != ""
+
+	// Response choice with empty content
+	finish = finish || resp.Choices[0].Delta.Content+resp.Choices[0].Delta.ReasoningContent == ""
+
+	// Increment usage if finish and usage info is available
 	if finish && resp.Usage != nil {
-		w.keyClient.IncrementUsage(w.model, int64(resp.Usage.TotalTokens))
+		delta := int64(resp.Usage.TotalTokens) - w.usage
+		if delta > 0 {
+			w.keyClient.IncrementUsage(w.model, delta)
+			w.usage += delta
+		}
 	}
 
 	return resp, nil
@@ -102,6 +115,7 @@ func (kc *KeyClient) ChatCompletionStream(ctx context.Context, req openai.ChatCo
 		stream:    stream,
 		keyClient: kc,
 		model:     req.Model,
+		usage:     0,
 	}
 
 	return wrapper, nil
