@@ -17,14 +17,19 @@ type KeyClient struct {
 	modelUsage map[string]int64 // per-model usage tracking
 	usageMutex sync.RWMutex     // protects modelUsage map
 	Client     *openai.Client
+
+	errorPenalty   int64
+	requestPenalty int64
 }
 
 // NewKeyClient creates a new KeyClient with initialized model usage map
-func NewKeyClient(apiKey string, client *openai.Client) *KeyClient {
+func NewKeyClient(apiKey string, client *openai.Client, errorPenalty int64, requestPenalty int64) *KeyClient {
 	return &KeyClient{
-		APIKey:     apiKey,
-		modelUsage: make(map[string]int64),
-		Client:     client,
+		APIKey:         apiKey,
+		modelUsage:     make(map[string]int64),
+		Client:         client,
+		errorPenalty:   errorPenalty,
+		requestPenalty: requestPenalty,
 	}
 }
 
@@ -92,8 +97,11 @@ func (w *ChatCompletionStream) Close() error {
 
 // ChatCompletion wraps the CreateChatCompletion method and increments usage
 func (kc *KeyClient) ChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (*ChatCompletionResponse, error) {
+	kc.IncrementUsage(req.Model, kc.requestPenalty)
+
 	resp, err := kc.Client.CreateChatCompletion(ctx, req)
 	if err != nil {
+		kc.IncrementUsage(req.Model, kc.errorPenalty)
 		return nil, err
 	}
 	kc.IncrementUsage(req.Model, int64(resp.Usage.TotalTokens))
@@ -106,8 +114,11 @@ func (kc *KeyClient) ChatCompletion(ctx context.Context, req openai.ChatCompleti
 
 // ChatCompletionStream wraps the CreateChatCompletionStream method and tracks usage
 func (kc *KeyClient) ChatCompletionStream(ctx context.Context, req openai.ChatCompletionRequest) (*ChatCompletionStream, error) {
+	kc.IncrementUsage(req.Model, kc.requestPenalty)
+
 	stream, err := kc.Client.CreateChatCompletionStream(ctx, req)
 	if err != nil {
+		kc.IncrementUsage(req.Model, kc.errorPenalty)
 		return nil, err
 	}
 

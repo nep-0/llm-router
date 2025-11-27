@@ -10,7 +10,7 @@ func TestPerModelUsageTracking(t *testing.T) {
 	// Create a new KeyClient
 	config := openai.DefaultConfig("test-key")
 	client := openai.NewClientWithConfig(config)
-	kc := NewKeyClient("test-key", client)
+	kc := NewKeyClient("test-key", client, 0, 0)
 
 	// Test initial usage is 0 for any model
 	if usage := kc.Usage("gpt-4"); usage != 0 {
@@ -60,7 +60,7 @@ func TestPerModelUsageTracking(t *testing.T) {
 func TestConcurrentUsageTracking(t *testing.T) {
 	config := openai.DefaultConfig("test-key")
 	client := openai.NewClientWithConfig(config)
-	kc := NewKeyClient("test-key", client)
+	kc := NewKeyClient("test-key", client, 0, 0)
 
 	// Test concurrent increments
 	done := make(chan bool)

@@ -84,6 +84,9 @@ cp config.example.yaml config.yaml
 port: 8080
 api_key: "your-api-key-here"
 
+error_penalty: 10000
+request_penalty: 500
+
 groups:
   - name: "gpt-4-turbo"
     models:
@@ -119,6 +122,8 @@ providers:
 
 - **port**: HTTP server port (default: 8080)
 - **api_key**: Authentication key for accessing the router API
+- **error_penalty**: Token penalty for failed requests (used in load balancing)
+- **request_penalty**: Token penalty per request (used in load balancing)
 - **groups**: Logical groupings of models
   - **name**: Group identifier (used as the "model" parameter in API requests)
   - **models**: List of models in the group

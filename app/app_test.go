@@ -10,10 +10,10 @@ import (
 func TestGetClientWithMultipleModelsFromSameProvider(t *testing.T) {
 	// Setup: Create test clients with usage tracking
 	config1 := openai.DefaultConfig("key1")
-	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(config1))
+	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(config1), 0, 0)
 
 	config2 := openai.DefaultConfig("key2")
-	kc2 := client.NewKeyClient("key2", openai.NewClientWithConfig(config2))
+	kc2 := client.NewKeyClient("key2", openai.NewClientWithConfig(config2), 0, 0)
 
 	// Create app with test clients
 	app := &App{
@@ -68,9 +68,9 @@ func TestGetClientWithMultipleModelsFromSameProvider(t *testing.T) {
 
 func TestGetClientSelectsLowestUsageAcrossAllCombinations(t *testing.T) {
 	// Create multiple API keys
-	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")))
-	kc2 := client.NewKeyClient("key2", openai.NewClientWithConfig(openai.DefaultConfig("key2")))
-	kc3 := client.NewKeyClient("key3", openai.NewClientWithConfig(openai.DefaultConfig("key3")))
+	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")), 0, 0)
+	kc2 := client.NewKeyClient("key2", openai.NewClientWithConfig(openai.DefaultConfig("key2")), 0, 0)
+	kc3 := client.NewKeyClient("key3", openai.NewClientWithConfig(openai.DefaultConfig("key3")), 0, 0)
 
 	app := &App{
 		clients: map[string]*client.ProviderClient{
@@ -121,8 +121,8 @@ func TestGetClientSelectsLowestUsageAcrossAllCombinations(t *testing.T) {
 
 func TestWeightedBalancing(t *testing.T) {
 	// Create multiple API keys
-	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")))
-	kc2 := client.NewKeyClient("key2", openai.NewClientWithConfig(openai.DefaultConfig("key2")))
+	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")), 0, 0)
+	kc2 := client.NewKeyClient("key2", openai.NewClientWithConfig(openai.DefaultConfig("key2")), 0, 0)
 
 	app := &App{
 		clients: map[string]*client.ProviderClient{
@@ -180,7 +180,7 @@ func TestWeightedBalancing(t *testing.T) {
 }
 
 func TestWeightedBalancingPrioritizesHigherWeight(t *testing.T) {
-	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")))
+	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")), 0, 0)
 
 	app := &App{
 		clients: map[string]*client.ProviderClient{
@@ -213,7 +213,7 @@ func TestWeightedBalancingPrioritizesHigherWeight(t *testing.T) {
 }
 
 func TestWeightedBalancingDistributesLoad(t *testing.T) {
-	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")))
+	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")), 0, 0)
 
 	app := &App{
 		clients: map[string]*client.ProviderClient{
@@ -254,9 +254,9 @@ func TestWeightedBalancingDistributesLoad(t *testing.T) {
 }
 
 func TestWeightedBalancingAcrossMultipleKeys(t *testing.T) {
-	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")))
-	kc2 := client.NewKeyClient("key2", openai.NewClientWithConfig(openai.DefaultConfig("key2")))
-	kc3 := client.NewKeyClient("key3", openai.NewClientWithConfig(openai.DefaultConfig("key3")))
+	kc1 := client.NewKeyClient("key1", openai.NewClientWithConfig(openai.DefaultConfig("key1")), 0, 0)
+	kc2 := client.NewKeyClient("key2", openai.NewClientWithConfig(openai.DefaultConfig("key2")), 0, 0)
+	kc3 := client.NewKeyClient("key3", openai.NewClientWithConfig(openai.DefaultConfig("key3")), 0, 0)
 
 	app := &App{
 		clients: map[string]*client.ProviderClient{

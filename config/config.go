@@ -5,8 +5,12 @@ import (
 )
 
 type Config struct {
-	Port      int64      `mapstructure:"port"`
-	APIKey    string     `mapstructure:"api_key"`
+	Port   int64  `mapstructure:"port"`
+	APIKey string `mapstructure:"api_key"`
+
+	ErrorPenalty   int64 `mapstructure:"error_penalty"`
+	RequestPenalty int64 `mapstructure:"request_penalty"`
+
 	Groups    []Group    `mapstructure:"groups"`
 	Providers []Provider `mapstructure:"providers"`
 }

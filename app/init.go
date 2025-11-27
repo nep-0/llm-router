@@ -56,6 +56,8 @@ func getClients(cfg *config.Config) map[string]*client.ProviderClient {
 			keyClient := client.NewKeyClient(
 				apiKey,
 				openai.NewClientWithConfig(openAIConfig),
+				cfg.ErrorPenalty,
+				cfg.RequestPenalty,
 			)
 			pClient.KeyClients = append(pClient.KeyClients, keyClient)
 		}

@@ -1,6 +1,9 @@
 port: 8080
 api_key: "your-api-key-here"
 
+error_penalty: 10000
+request_penalty: 500
+
 groups:
   - name: "gpt-4-turbo"
     models:
