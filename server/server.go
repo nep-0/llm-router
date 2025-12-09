@@ -34,6 +34,7 @@ func NewServer(apiKey string, logger *slog.Logger,
 func (s *Server) ListenAndServe(addr string) {
 	s.Logger.Info("Server listening", slog.String("address", addr))
 	http.HandleFunc("/v1/chat/completions", compressionMiddleware(s.HandleCompletionsRequest))
+	http.HandleFunc("/v1/responses", compressionMiddleware(s.HandleResponsesRequest))
 	// expose models list
 	if s.handleModels != nil {
 		http.HandleFunc("/v1/models", compressionMiddleware(s.HandleModelsRequest(s.handleModels)))

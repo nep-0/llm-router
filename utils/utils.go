@@ -38,6 +38,13 @@ func RedactAuthorization(auth string) string {
 	}, auth)
 }
 
+// NewID generates a random ID string
+func NewID() string {
+	b := make([]byte, 12)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)
+}
+
 // DrainBody reads the body of an HTTP request and returns a new reader with the same content
 // along with the body as a string for logging purposes.
 func DrainBody(body io.ReadCloser) (io.ReadCloser, string) {

@@ -15,6 +15,7 @@ A flexible and efficient OpenAI-compatible API router for large language models 
 - **Compression** - Automatic response compression when client supports it
 - **CORS Support** - Built-in CORS handling for browser-based applications
 - **Secure Authentication** - Bearer token authentication with constant-time comparison
+- **Responses API Support** - Compatibility with OpenAI's Responses API format (`/v1/responses`)
 
 ## Installation
 
@@ -69,6 +70,34 @@ git clone https://github.com/nep-0/llm-router.git
 cd llm-router
 go build -o llm-router
 ```
+
+## API Endpoints
+
+### Chat Completions
+`POST /v1/chat/completions`
+
+Standard OpenAI Chat Completions API.
+
+### Responses API
+`POST /v1/responses`
+
+Compatible with OpenAI's Responses API. Accepts `input` (string or array) or `messages`, and `model_id` or `model`.
+
+**Example:**
+```bash
+curl http://localhost:8080/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
+  -d '{
+    "model_id": "gpt-4",
+    "input": "Hello, how are you?"
+  }'
+```
+
+### List Models
+`GET /v1/models`
+
+Returns the list of available models/groups.
 
 ## Configuration
 
