@@ -12,6 +12,7 @@ A flexible and efficient OpenAI-compatible API router for large language models 
 - **Streaming Support** - Full support for streaming chat completions with Server-Sent Events (SSE)
 - **API Key Management** - Manage multiple API keys per provider for better rate limiting and redundancy
 - **Per-Model Usage Tracking** - Monitors token usage per API key per model for granular routing decisions
+- **Performance Tracking** - Tracks first token time (TTFT) and tokens per second for each model
 - **Compression** - Automatic response compression when client supports it
 - **CORS Support** - Built-in CORS handling for browser-based applications
 - **Secure Authentication** - Bearer token authentication with constant-time comparison
@@ -98,6 +99,34 @@ curl http://localhost:8080/v1/responses \
 `GET /v1/models`
 
 Returns the list of available models/groups.
+
+### Performance Stats
+`GET /v1/stats`
+
+Returns performance statistics for each model including:
+- **First Token Time** (TTFT) - Time to receive the first token (avg/min/max in milliseconds)
+- **Tokens Per Second** - Throughput metrics (avg/min/max)
+- **Total Requests** - Number of requests processed
+- **Total Tokens** - Total tokens processed
+
+**Example Response:**
+```json
+{
+  "object": "performance_stats",
+  "data": {
+    "openai:gpt-4": {
+      "total_requests": 150,
+      "first_token_time_avg_ms": 245.5,
+      "first_token_time_min_ms": 120.0,
+      "first_token_time_max_ms": 890.0,
+      "tokens_per_second_avg": 45.2,
+      "tokens_per_second_min": 12.5,
+      "tokens_per_second_max": 78.3,
+      "total_tokens": 125000
+    }
+  }
+}
+```
 
 ## Configuration
 

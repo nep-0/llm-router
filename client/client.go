@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/sashabaranov/go-openai"
 )
@@ -13,19 +14,21 @@ type ProviderClient struct {
 }
 
 type KeyClient struct {
-	APIKey     string
-	modelUsage map[string]int64 // per-model usage tracking
-	usageMutex sync.RWMutex     // protects modelUsage map
-	Client     *openai.Client
+	APIKey       string
+	ProviderName string           // provider name for stats tracking
+	modelUsage   map[string]int64 // per-model usage tracking
+	usageMutex   sync.RWMutex     // protects modelUsage map
+	Client       *openai.Client
 
 	errorPenalty   int64
 	requestPenalty int64
 }
 
 // NewKeyClient creates a new KeyClient with initialized model usage map
-func NewKeyClient(apiKey string, client *openai.Client, errorPenalty int64, requestPenalty int64) *KeyClient {
+func NewKeyClient(apiKey string, providerName string, client *openai.Client, errorPenalty int64, requestPenalty int64) *KeyClient {
 	return &KeyClient{
 		APIKey:         apiKey,
+		ProviderName:   providerName,
 		modelUsage:     make(map[string]int64),
 		Client:         client,
 		errorPenalty:   errorPenalty,
@@ -57,16 +60,35 @@ type ChatCompletionStream struct {
 	stream    *openai.ChatCompletionStream
 	keyClient *KeyClient
 	model     string
+	provider  string
 	// Different providers report usage in very different ways.
 	// In case of reporting multiple times, we track usage here to avoid double counting.
 	usage int64
+	// Performance tracking
+	startTime      time.Time
+	firstTokenTime time.Duration
+	firstTokenSent bool
 }
 
 // Recv receives the next stream chunk and tracks usage
 func (w *ChatCompletionStream) Recv() (openai.ChatCompletionStreamResponse, error) {
 	resp, err := w.stream.Recv()
 	if err != nil {
+		// On EOF or error, record final performance stats if we have usage data
+		if w.usage > 0 {
+			totalDuration := time.Since(w.startTime)
+			GlobalStats.RecordRequest(w.provider, w.model, w.firstTokenTime, w.usage, totalDuration)
+		}
 		return resp, err
+	}
+
+	// Track first token time
+	if !w.firstTokenSent {
+		// Check if this chunk contains actual content
+		if len(resp.Choices) > 0 && (resp.Choices[0].Delta.Content != "" || resp.Choices[0].Delta.ReasoningContent != "") {
+			w.firstTokenTime = time.Since(w.startTime)
+			w.firstTokenSent = true
+		}
 	}
 
 	// Empty response choices
@@ -99,12 +121,18 @@ func (w *ChatCompletionStream) Close() error {
 func (kc *KeyClient) ChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (*ChatCompletionResponse, error) {
 	kc.IncrementUsage(req.Model, kc.requestPenalty)
 
+	startTime := time.Now()
 	resp, err := kc.Client.CreateChatCompletion(ctx, req)
+	totalDuration := time.Since(startTime)
+
 	if err != nil {
 		kc.IncrementUsage(req.Model, kc.errorPenalty)
 		return nil, err
 	}
 	kc.IncrementUsage(req.Model, int64(resp.Usage.TotalTokens))
+
+	// Record performance stats (for non-streaming, first token time = total time)
+	GlobalStats.RecordRequest(kc.ProviderName, req.Model, totalDuration, int64(resp.Usage.TotalTokens), totalDuration)
 
 	wrapped := &ChatCompletionResponse{
 		ChatCompletionResponse: resp,
@@ -116,6 +144,7 @@ func (kc *KeyClient) ChatCompletion(ctx context.Context, req openai.ChatCompleti
 func (kc *KeyClient) ChatCompletionStream(ctx context.Context, req openai.ChatCompletionRequest) (*ChatCompletionStream, error) {
 	kc.IncrementUsage(req.Model, kc.requestPenalty)
 
+	startTime := time.Now()
 	stream, err := kc.Client.CreateChatCompletionStream(ctx, req)
 	if err != nil {
 		kc.IncrementUsage(req.Model, kc.errorPenalty)
@@ -123,10 +152,13 @@ func (kc *KeyClient) ChatCompletionStream(ctx context.Context, req openai.ChatCo
 	}
 
 	wrapper := &ChatCompletionStream{
-		stream:    stream,
-		keyClient: kc,
-		model:     req.Model,
-		usage:     0,
+		stream:         stream,
+		keyClient:      kc,
+		model:          req.Model,
+		provider:       kc.ProviderName,
+		usage:          0,
+		startTime:      startTime,
+		firstTokenSent: false,
 	}
 
 	return wrapper, nil

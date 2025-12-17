@@ -55,6 +55,7 @@ func getClients(cfg *config.Config) map[string]*client.ProviderClient {
 			openAIConfig.BaseURL = provider.BaseURL
 			keyClient := client.NewKeyClient(
 				apiKey,
+				provider.Name,
 				openai.NewClientWithConfig(openAIConfig),
 				cfg.ErrorPenalty,
 				cfg.RequestPenalty,
